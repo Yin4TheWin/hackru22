@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import GoogleFit, { Scopes } from 'react-native-google-fit'
+import CameraActivity from './CameraActivity';
 
 import {
   Colors,
@@ -66,7 +67,7 @@ const reducer = (state, action) => {
 };
 const App = () => {
  // const dispatch = useDispatch()
- const [state, dispatch] = useReducer(reducer, {red: 0, green: 0, blue: 0});
+  const [state, dispatch] = useReducer(reducer, {red: 0, green: 0, blue: 0});
   const [dailySteps, setdailySteps] = useState(0);
   const isDarkMode = useColorScheme() === 'dark';
   const options = {
