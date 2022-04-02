@@ -6,8 +6,7 @@
  * @flow strict-local
  */
 
-import React, {useState, useEffect} from 'react';
-import type {Node} from 'react';
+import React, {useState, useEffect, useReducer} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -27,7 +26,7 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
-const Section = ({children, title}): Node => {
+const Section = ({children, title}) => {
   const isDarkMode = useColorScheme() === 'dark';
   return (
     <View style={styles.sectionContainer}>
@@ -52,16 +51,23 @@ const Section = ({children, title}): Node => {
     </View>
   );
 };
+const reducer = (state, action) => {
 
-const App: () => Node = () => {
+    switch (action.colorToChange) {
+        case 'red':
+            return {...state, red: state.red + action.amount};
+        case 'green':
+            return {...state, green: state.green + action.amount};
+        case 'blue':
+            return {...state, blue: state.blue + action.amount};
+        default:
+            return state;
+    }
+};
+const App = () => {
+ // const dispatch = useDispatch()
+ const [state, dispatch] = useReducer(reducer, {red: 0, green: 0, blue: 0});
   const [dailySteps, setdailySteps] = useState(0);
-  const [heartRate, setHeartRate] = useState(0);
-  const [calories, setCalories] = useState(0);
-  const [hydration, setHydration] = useState(0);
-  const [sleep, setSleep] = useState(0);
-  const [weight, setWeight] = useState(0);
-  const [bloodPressure, setBloodPressure] = useState({});
-  const [loading, setLoading] = useState(true);
   const isDarkMode = useColorScheme() === 'dark';
   const options = {
     scopes: [
@@ -82,18 +88,23 @@ const App: () => Node = () => {
           .then(authResult => {
             if (authResult.success) {
               console.log('AUTH_SUCCESS');
-              GoogleFit.getDailySteps().then((steps)=>{steps.forEach(el=>{
-                if(el.source.includes("com.google"))
-                  console.log(el.steps[0].value)
-              })}).catch()
-              GoogleFit.getWeeklySteps().then((steps)=>{console.log(steps)}).catch()
+              const opt = {
+                startDate: "2022-04-02T00:00:17.971Z", // required ISO8601Timestamp
+                endDate: new Date().toISOString(), // required ISO8601Timestamp
+                bucketInterval: 1, // optional - default 1. 
+              };
+              GoogleFit.getDailyStepCountSamples(opt).then((res)=>{res.forEach(el=>{
+                if(el.source.includes("google")){
+                  console.log(el.steps)
+                }
+              })})
               // if successfully authorized, fetch data
             } else {
               console.log('AUTH_DENIED ' + authResult.message);
             }
           })
-          .catch(() => {
-            dispatch('AUTH_ERROR');
+          .catch((err) => {
+            console.log(err)
           });
       }
   });
@@ -130,6 +141,7 @@ const App: () => Node = () => {
         </View>
       </ScrollView>
     </SafeAreaView>
+
   );
 };
 
