@@ -6,7 +6,7 @@
  * @flow strict-local
  */
 
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import type {Node} from 'react';
 import {
   SafeAreaView,
@@ -54,8 +54,50 @@ const Section = ({children, title}): Node => {
 };
 
 const App: () => Node = () => {
+  const [dailySteps, setdailySteps] = useState(0);
+  const [heartRate, setHeartRate] = useState(0);
+  const [calories, setCalories] = useState(0);
+  const [hydration, setHydration] = useState(0);
+  const [sleep, setSleep] = useState(0);
+  const [weight, setWeight] = useState(0);
+  const [bloodPressure, setBloodPressure] = useState({});
+  const [loading, setLoading] = useState(true);
   const isDarkMode = useColorScheme() === 'dark';
-
+  const options = {
+    scopes: [
+      Scopes.FITNESS_ACTIVITY_READ,
+    ],
+  };
+  useEffect(()=>{
+    GoogleFit.checkIsAuthorized().then(() => {
+      var authorized = GoogleFit.isAuthorized;
+      console.log(authorized);
+      if (authorized) {
+        // if already authorized, fetch data
+        GoogleFit.getDailySteps().then((steps)=>{console.log(steps)}).catch()
+        GoogleFit.getWeeklySteps().then((steps)=>{console.log(steps)}).catch()
+      } else {
+        // Authentication if already not authorized for a particular device
+        GoogleFit.authorize(options)
+          .then(authResult => {
+            if (authResult.success) {
+              console.log('AUTH_SUCCESS');
+              GoogleFit.getDailySteps().then((steps)=>{steps.forEach(el=>{
+                if(el.source.includes("com.google"))
+                  console.log(el.steps[0].value)
+              })}).catch()
+              GoogleFit.getWeeklySteps().then((steps)=>{console.log(steps)}).catch()
+              // if successfully authorized, fetch data
+            } else {
+              console.log('AUTH_DENIED ' + authResult.message);
+            }
+          })
+          .catch(() => {
+            dispatch('AUTH_ERROR');
+          });
+      }
+  });
+  }, [])
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
