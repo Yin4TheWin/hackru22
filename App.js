@@ -8,49 +8,20 @@
 
 import React, {useState, useEffect, useReducer} from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   useColorScheme,
   View,
 } from 'react-native';
 import GoogleFit, { Scopes } from 'react-native-google-fit'
-
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import Me from './screens/Me'
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const Section = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
 const reducer = (state, action) => {
 
     switch (action.colorToChange) {
@@ -65,7 +36,6 @@ const reducer = (state, action) => {
     }
 };
 const App = () => {
- // const dispatch = useDispatch()
  const [state, dispatch] = useReducer(reducer, {red: 0, green: 0, blue: 0});
   const [dailySteps, setdailySteps] = useState(0);
   const isDarkMode = useColorScheme() === 'dark';
@@ -112,36 +82,28 @@ const App = () => {
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
-
+  const Tab = createBottomTabNavigator()
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-
+    <NavigationContainer>
+    <Tab.Navigator
+     screenOptions={{
+      headerShown: false
+    }}
+    >
+      <Tab.Screen name="Me" options={{
+        tabBarLabel: 'Me',
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="person" color={color} size={size} />
+        ),
+      }} component={Me}/>
+      <Tab.Screen name="Scan" options={{
+        tabBarLabel: 'Scan',
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="restaurant" color={color} size={size} />
+        ),
+      }} component={Me}/>
+    </Tab.Navigator>
+  </NavigationContainer>
   );
 };
 
