@@ -18,6 +18,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   Colors,
 } from 'react-native/Libraries/NewAppScreen';
+import SBar from './SBar';
 import Me from './screens/Me'
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LogBox } from 'react-native';
@@ -50,7 +51,7 @@ const App = () => {
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="restaurant" color={color} size={size} />
         ),
-      }} component={Me}/>
+      }} component={SBar}/>
       <Tab.Screen name="Battle" options={{
         tabBarLabel: 'Battle',
         tabBarIcon: ({ color, size }) => (
