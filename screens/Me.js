@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, Dimensions, FlatLi
 import {useAuthState} from 'react-firebase-hooks/auth';
 import Authenticator from '../components/Authenticator'
 import GoogleFit, { Scopes } from 'react-native-google-fit'
-import { getDatabase, ref, child, get, update } from "firebase/database";
+import { ref, child, get, update, onValue } from "firebase/database";
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 
@@ -24,8 +24,12 @@ export default function Me({navigation}){
   //State 0 is log in, 1 is sign up
   const [dailySteps, setDailySteps] = React.useState(0);
   const [lifeSteps, setLifeSteps] = React.useState(0)
-  const [levels, setLevels] = React.useState({"Armor":1, "Weapon": 1 })
-  const [xp, setXp] = React.useState({"Armor": 0, "Weapon": 0})
+  const [lifeCals, setLifeCals] = React.useState(0)
+  const [dailyCals, setDailyCals] = React.useState(0)
+  const [armorLevel, setArmorLevel] = React.useState(1)
+  const [armorXp, setArmorXp] = React.useState(0)
+  const [weaponLevel, setWeaponLevel] = React.useState(1)
+  const [weaponXp, setWeaponXp] = React.useState(0)
   const [state, dispatch] = React.useReducer(reducer, {red: 0, green: 0, blue: 0});
   const [loginState, setLoginState] = React.useState(0)
   //States for all text fields, namely email, password, name and location
@@ -45,6 +49,21 @@ export default function Me({navigation}){
       get(child(ref(Authenticator.db), `users/${user.uid}`)).then((snapshot) => {
         if (snapshot.exists()) {
           setUsername(snapshot.val().name);
+          // Attach an asynchronous callback to read the data at our posts reference
+          onValue(ref(Authenticator.db,`users/${user.uid}`), (newVal) => {
+            let axp=newVal.val().lifeCals
+            let level=1
+            while(axp-(level*level*1000)>0){
+              axp-=(level*level*1000)
+              level+=1
+            }
+            setWeaponXp(axp)
+            setWeaponLevel(level)
+            setLifeCals(newVal.val().lifeCals)
+            setDailyCals(newVal.val().dailyCals)
+          }, (errorObject) => {
+            console.log('The read failed: ' + errorObject.name);
+          }); 
           GoogleFit.checkIsAuthorized().then(() => {
             var authorized = GoogleFit.isAuthorized;
             console.log(authorized);
@@ -80,14 +99,13 @@ export default function Me({navigation}){
                             setLifeSteps(lifesteps)
                             let xp=lifesteps
                             let level=0
-                            while(xp>0){
-                              console.log(xp)
-                              xp-=((level+1)*(level+1)*1000)
+                            while(xp-(level*level*1000)>0){
+                              xp-=(level*level*1000)
                               level+=1
                             }
-                            console.log(level, xp)
-                            setLevels({"Armor": level, "Weapon": levels["Weapon"]})
-                            setXp({"Armor": lifesteps, "Weapon": levels["Weapon"]})
+                         //   console.log(level, xp)
+                            setArmorLevel(level)
+                            setArmorXp(lifesteps)
                             update(ref(Authenticator.db, `users/${user.uid}`), {
                               lifeSteps: lifesteps,
                               lastOn: new Date().toISOString()
@@ -97,13 +115,12 @@ export default function Me({navigation}){
                       } else {
                         setLifeSteps(daily)
                         let xp=daily
-                        let level=0
-                        while(xp>0){
-                          xp-=((level+1)*(level+1)*1000)
+                        while(xp-(level*level*1000)>0){
+                          xp-=(level*level*1000)
                           level+=1
                         }
-                        setLevels({"Armor": level, "Weapon": levels["Weapon"]})
-                        setXp({"Armor": daily, "Weapon": levels["Weapon"]})
+                        setArmorLevel(level)
+                        setArmorXp(daily)
                         update(ref(Authenticator.db, `users/${user.uid}`), {
                           lifeSteps: daily
                         })
@@ -143,9 +160,9 @@ export default function Me({navigation}){
   Login=()=>{
     return (<View>
       <TouchableOpacity style={styles.button} onPress={()=>{Authenticator.loginUser(email, password)}}>
-        <Text style={{color: 'white'}}>Log In</Text>
+        <Text style={{color: 'white', fontFamily:'Roboto'}}>Log In</Text>
       </TouchableOpacity>
-      <Text style={{marginTop: '5%', marginLeft: '5%',  marginRight: '5%'}}>Don't have an account? <Text onPress={()=> setLoginState(1)} style = {{ color: 'blue' }}>Sign Up</Text></Text>
+      <Text style={{marginTop: '5%', marginLeft: '5%',  marginRight: '5%', fontFamily:'Roboto'}}>Don't have an account? <Text onPress={()=> setLoginState(1)} style = {{ color: 'blue', fontFamily:'Roboto' }}>Sign Up</Text></Text>
     </View>)
   }
   Profile=()=>{
@@ -177,23 +194,23 @@ export default function Me({navigation}){
       <View style={{padding: '5%', flexDirection: 'row'}}>
           <Image
             style={{ height: 100, width: 100}}
-            source={levels[item.title]<4?item.image1:(levels[item.title]<7?item.image2:item.image3)}
+            source={item.title==='Armor'?(armorLevel<4?item.image1:(armorLevel[item.title]<7?item.image2:item.image3)):(weaponLevel<4?item.image1:(weaponLevel[item.title]<7?item.image2:item.image3))}
             resizeMode="contain"
           />
-        <Text style={{fontSize: 30}}>{item.title+"\n"} Lv. {levels[item.title]} <Text style={{fontSize: 15}}>({getXp(xp[item.title])}/{levels[item.title]*levels[item.title]*1000})</Text></Text>
+        <Text style={{fontSize: 30}}>{item.title+"\n"} Lv. {item.title==='Armor'?armorLevel:weaponLevel} <Text style={{fontSize: 15}}>({item.title==='Armor'?getXp(armorXp):getXp(weaponXp)}/{item.title==='Armor'?(armorLevel*armorLevel*1000):(weaponLevel*weaponLevel*1000)})</Text></Text>
       </View>
     );
     return (<View>
-      <Text style={{fontSize: 30, paddingBottom: '3%'}}>Welcome back, {username}</Text>
+      <Text style={{fontSize: 30, paddingBottom: '3%', fontFamily:'Roboto'}}>Welcome back, {username}</Text>
       <View style={{paddingTop: '3%', height:"auto", flexDirection: 'row', justifyContent: 'space-evenly'}}>
-        <Text style={{paddingRight: '3%', fontSize: 15}}>Today's stats: </Text>
-        <Text style={{paddingRight: '3%', fontSize: 15}}>{dailySteps} <FontAwesome5 name="shoe-prints" size={20} color="#010333"/> </Text>
-        <Text style={{paddingLeft: '3%', fontSize: 15}}>0 <MaterialCommunityIcons name="lightning-bolt" size={22} color="#f7eb40"/></Text>
+        <Text style={{paddingRight: '3%', fontSize: 15, fontFamily:'Roboto'}}>Today's stats: </Text>
+        <Text style={{paddingRight: '3%', fontSize: 15, fontFamily:'Roboto'}}>{dailySteps} <FontAwesome5 name="shoe-prints" size={20} color="#010333"/> </Text>
+        <Text style={{paddingLeft: '3%', fontSize: 15, fontFamily:'Roboto'}}>{dailyCals} <MaterialCommunityIcons name="lightning-bolt" size={22} color="#f7eb40"/></Text>
       </View>
       <View style={{paddingTop: '3%', height:"auto", flexDirection: 'row', justifyContent: 'space-evenly'}}>
-        <Text style={{paddingRight: '3%', fontSize: 15}}>Lifetime stats: </Text>
-        <Text style={{paddingRight: '3%', fontSize: 15}}>{lifeSteps} <FontAwesome5 name="shoe-prints" size={20} color="#010333"/> </Text>
-        <Text style={{paddingLeft: '3%', fontSize: 15}}>0 <MaterialCommunityIcons name="lightning-bolt" size={22} color="#f7eb40"/></Text>
+        <Text style={{paddingRight: '3%', fontSize: 15, fontFamily:'Roboto'}}>Lifetime stats: </Text>
+        <Text style={{paddingRight: '3%', fontSize: 15, fontFamily:'Roboto'}}>{lifeSteps} <FontAwesome5 name="shoe-prints" size={20} color="#010333"/> </Text>
+        <Text style={{paddingLeft: '3%', fontSize: 15, fontFamily:'Roboto'}}>{lifeCals} <MaterialCommunityIcons name="lightning-bolt" size={22} color="#f7eb40"/></Text>
       </View>
       <FlatList
       style={{paddingTop: '10%'}}
