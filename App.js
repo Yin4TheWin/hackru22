@@ -19,7 +19,9 @@ import {
   Colors,
 } from 'react-native/Libraries/NewAppScreen';
 import Me from './screens/Me'
+import Battle from './screens/Battle'
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LogBox } from 'react-native';
 LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message
 LogBox.ignoreAllLogs();
@@ -54,9 +56,9 @@ const App = () => {
       <Tab.Screen name="Battle" options={{
         tabBarLabel: 'Battle',
         tabBarIcon: ({ color, size }) => (
-          <Ionicons name="warning" color={color} size={size} />
+          <MaterialCommunityIcons name="sword" color={color} size={size} />
         ),
-      }} component={Me}/>
+      }} component={Battle}/>
     </Tab.Navigator>
   </NavigationContainer>
   );
