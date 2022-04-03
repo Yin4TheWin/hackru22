@@ -57,8 +57,6 @@ export default class SBar extends React.Component{
       search: '',
       modalVisible: false,
     };
-    
-  
     updateSearch = (search) => {
       this.setState({search: search, modalVisible: this.modalVisible });
     };
@@ -66,21 +64,21 @@ export default class SBar extends React.Component{
     render() {
       const { search } = this.state;
       const  modalV  = this.state.modalVisible;
-      const [user, loading, error] = useAuthState(Authenticator.auth); 
       return (
         <View> 
             <SearchBar
               placeholder="Type Here..."
               onChangeText={this.updateSearch}
               onSubmitEditing={() => {  getData(search).then(()=>{searchedWord = search;
-                get(child(ref(Authenticator.db), `users/${user.uid}`)).then((snapshot) => {
-                    if (snapshot.exists()) {
-                        update(ref(Authenticator.db, `users/${user.uid}`), {
-                            lifeCals: snapshot.val().lifeCals+exportScore,
-                            dailyCals: snapshot.val().dailyCals+exportScore
-                          })
-                    }
-                })
+                if(Authenticator.auth.currentUser)
+                  get(child(ref(Authenticator.db), `users/${Authenticator.auth.currentUser.uid}`)).then((snapshot) => {
+                      if (snapshot.exists()) {
+                          update(ref(Authenticator.db, `users/${Authenticator.auth.currentUser.uid}`), {
+                              lifeCals: snapshot.val().lifeCals+exportScore,
+                              dailyCals: snapshot.val().dailyCals+exportScore
+                            })
+                      }
+                  })
                 this.setState({search: search, modalVisible: true})});} }
               value={search} />
               <View>

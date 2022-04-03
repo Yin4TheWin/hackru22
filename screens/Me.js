@@ -43,7 +43,7 @@ export default function Me({navigation}){
     ],
   };
   //Firebase user object
-  const [user, loading, error] = useAuthState(Authenticator.auth); 
+  const [user, loading, error] = useAuthState(Authenticator.auth);
   React.useEffect(()=>{
     if(user){
       get(child(ref(Authenticator.db), `users/${user.uid}`)).then((snapshot) => {
