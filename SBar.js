@@ -6,7 +6,9 @@ import {
   Text,
   View,
 } from 'react-native';
-
+import {useAuthState} from 'react-firebase-hooks/auth';
+import Authenticator from './components/Authenticator'
+import { ref, child, get, update, onValue } from "firebase/database";
 let responseData = null;
 let exportScore = -1;
 let searchedWord = "";
@@ -64,12 +66,22 @@ export default class SBar extends React.Component{
     render() {
       const { search } = this.state;
       const  modalV  = this.state.modalVisible;
+      const [user, loading, error] = useAuthState(Authenticator.auth); 
       return (
         <View> 
             <SearchBar
               placeholder="Type Here..."
               onChangeText={this.updateSearch}
-              onSubmitEditing={() => {  getData(search).then(()=>{searchedWord = search;this.setState({search: search, modalVisible: true})});} }
+              onSubmitEditing={() => {  getData(search).then(()=>{searchedWord = search;
+                get(child(ref(Authenticator.db), `users/${user.uid}`)).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        update(ref(Authenticator.db, `users/${user.uid}`), {
+                            lifeCals: snapshot.val().lifeCals+exportScore,
+                            dailyCals: snapshot.val().dailyCals+exportScore
+                          })
+                    }
+                })
+                this.setState({search: search, modalVisible: true})});} }
               value={search} />
               <View>
               <Modal style = {styles.modalContainer}
