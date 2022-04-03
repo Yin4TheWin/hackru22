@@ -24,6 +24,8 @@ export default function Me({navigation}){
   //State 0 is log in, 1 is sign up
   const [dailySteps, setDailySteps] = React.useState(0);
   const [lifeSteps, setLifeSteps] = React.useState(0)
+  const [levels, setLevels] = React.useState({"Armor":1, "Weapon": 1 })
+  const [xp, setXp] = React.useState({"Armor": 0, "Weapon": 0})
   const [state, dispatch] = React.useReducer(reducer, {red: 0, green: 0, blue: 0});
   const [loginState, setLoginState] = React.useState(0)
   //States for all text fields, namely email, password, name and location
@@ -74,15 +76,34 @@ export default function Me({navigation}){
                             allSteps.forEach(step=>{
                               newSteps+=step.value
                             })
-                            setLifeSteps(snapshot.val().lifeSteps+newSteps)
+                            let lifesteps=snapshot.val().lifeSteps+newSteps
+                            setLifeSteps(lifesteps)
+                            let xp=lifesteps
+                            let level=0
+                            while(xp>0){
+                              console.log(xp)
+                              xp-=((level+1)*(level+1)*1000)
+                              level+=1
+                            }
+                            console.log(level, xp)
+                            setLevels({"Armor": level, "Weapon": levels["Weapon"]})
+                            setXp({"Armor": lifesteps, "Weapon": levels["Weapon"]})
                             update(ref(Authenticator.db, `users/${user.uid}`), {
-                              lifeSteps: snapshot.val().lifeSteps+newSteps,
+                              lifeSteps: lifesteps,
                               lastOn: new Date().toISOString()
                             })
                           }
                         })}) 
                       } else {
                         setLifeSteps(daily)
+                        let xp=daily
+                        let level=0
+                        while(xp>0){
+                          xp-=((level+1)*(level+1)*1000)
+                          level+=1
+                        }
+                        setLevels({"Armor": level, "Weapon": levels["Weapon"]})
+                        setXp({"Armor": daily, "Weapon": levels["Weapon"]})
                         update(ref(Authenticator.db, `users/${user.uid}`), {
                           lifeSteps: daily
                         })
@@ -132,22 +153,34 @@ export default function Me({navigation}){
       {
         id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba',
         title: 'Armor',
-        image1: require("../images/armor1.png")
+        image1: require("../images/armor1.png"),
+        image2: require("../images/armor2.png"),
+        image3: require("../images/armor3.png")
       },
       {
         id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63',
         title: 'Weapon',
-        image1: require("../images/weapon1.png")
+        image1: require("../images/weapon1.png"),
+        image2: require("../images/weapon2.png"),
+        image3: require("../images/weapon3.png")
       }
     ];
+    const getXp = (xp)=>{
+      let level=0
+      while(xp-((level+1)*(level+1)*1000)>0){
+        xp-=((level+1)*(level+1)*1000)
+        level+=1
+      }
+      return xp
+    }
     const renderItem = ({ item }) => (
       <View style={{padding: '5%', flexDirection: 'row'}}>
           <Image
             style={{ height: 100, width: 100}}
-            source={item.image1}
+            source={levels[item.title]<4?item.image1:(levels[item.title]<7?item.image2:item.image3)}
             resizeMode="contain"
           />
-        <Text style={{fontSize: 30}}>{item.title+"\n"} Lv. 1 (0/100)</Text>
+        <Text style={{fontSize: 30}}>{item.title+"\n"} Lv. {levels[item.title]} <Text style={{fontSize: 15}}>({getXp(xp[item.title])}/{levels[item.title]*levels[item.title]*1000})</Text></Text>
       </View>
     );
     return (<View>
