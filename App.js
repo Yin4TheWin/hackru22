@@ -13,7 +13,6 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import GoogleFit, { Scopes } from 'react-native-google-fit'
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -21,64 +20,14 @@ import {
 } from 'react-native/Libraries/NewAppScreen';
 import Me from './screens/Me'
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message
+LogBox.ignoreAllLogs();
 
-const reducer = (state, action) => {
-
-    switch (action.colorToChange) {
-        case 'red':
-            return {...state, red: state.red + action.amount};
-        case 'green':
-            return {...state, green: state.green + action.amount};
-        case 'blue':
-            return {...state, blue: state.blue + action.amount};
-        default:
-            return state;
-    }
-};
 const App = () => {
- const [state, dispatch] = useReducer(reducer, {red: 0, green: 0, blue: 0});
-  const [dailySteps, setdailySteps] = useState(0);
   const isDarkMode = useColorScheme() === 'dark';
-  const options = {
-    scopes: [
-      Scopes.FITNESS_ACTIVITY_READ,
-    ],
-  };
-  useEffect(()=>{
-    GoogleFit.checkIsAuthorized().then(() => {
-      var authorized = GoogleFit.isAuthorized;
-      console.log(authorized);
-      if (authorized) {
-        // if already authorized, fetch data
-        GoogleFit.getDailySteps().then((steps)=>{console.log(steps)}).catch()
-        GoogleFit.getWeeklySteps().then((steps)=>{console.log(steps)}).catch()
-      } else {
-        // Authentication if already not authorized for a particular device
-        GoogleFit.authorize(options)
-          .then(authResult => {
-            if (authResult.success) {
-              console.log('AUTH_SUCCESS');
-              const opt = {
-                startDate: "2022-04-02T00:00:17.971Z", // required ISO8601Timestamp
-                endDate: new Date().toISOString(), // required ISO8601Timestamp
-                bucketInterval: 1, // optional - default 1. 
-              };
-              GoogleFit.getDailyStepCountSamples(opt).then((res)=>{res.forEach(el=>{
-                if(el.source.includes("google")){
-                  console.log(el.steps)
-                }
-              })})
-              // if successfully authorized, fetch data
-            } else {
-              console.log('AUTH_DENIED ' + authResult.message);
-            }
-          })
-          .catch((err) => {
-            console.log(err)
-          });
-      }
-  });
-  }, [])
+
+
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
@@ -100,6 +49,12 @@ const App = () => {
         tabBarLabel: 'Scan',
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="restaurant" color={color} size={size} />
+        ),
+      }} component={Me}/>
+      <Tab.Screen name="Battle" options={{
+        tabBarLabel: 'Battle',
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="warning" color={color} size={size} />
         ),
       }} component={Me}/>
     </Tab.Navigator>

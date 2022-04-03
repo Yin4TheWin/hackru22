@@ -1,25 +1,119 @@
 import * as React from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Dimensions, FlatList, Image } from 'react-native';
 import {useAuthState} from 'react-firebase-hooks/auth';
 import Authenticator from '../components/Authenticator'
+import GoogleFit, { Scopes } from 'react-native-google-fit'
+import { getDatabase, ref, child, get, update } from "firebase/database";
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 
+const reducer = (state, action) => {
+
+  switch (action.colorToChange) {
+      case 'red':
+          return {...state, red: state.red + action.amount};
+      case 'green':
+          return {...state, green: state.green + action.amount};
+      case 'blue':
+          return {...state, blue: state.blue + action.amount};
+      default:
+          return state;
+  }
+};
 export default function Me({navigation}){
   //State 0 is log in, 1 is sign up
+  const [dailySteps, setDailySteps] = React.useState(0);
+  const [lifeSteps, setLifeSteps] = React.useState(0)
+  const [state, dispatch] = React.useReducer(reducer, {red: 0, green: 0, blue: 0});
   const [loginState, setLoginState] = React.useState(0)
   //States for all text fields, namely email, password, name and location
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [name, setName] = React.useState("")
-  const [location, setLocation] = React.useState("")
+  const [username, setUsername] = React.useState("")
+  const [confirm, setConfirm] = React.useState("")
+  const options = {
+    scopes: [
+      Scopes.FITNESS_ACTIVITY_READ,
+    ],
+  };
   //Firebase user object
   const [user, loading, error] = useAuthState(Authenticator.auth); 
-
+  React.useEffect(()=>{
+    if(user){
+      get(child(ref(Authenticator.db), `users/${user.uid}`)).then((snapshot) => {
+        if (snapshot.exists()) {
+          setUsername(snapshot.val().name);
+          GoogleFit.checkIsAuthorized().then(() => {
+            var authorized = GoogleFit.isAuthorized;
+            console.log(authorized);
+            if (authorized) {
+              // if already authorized, fetch data
+ 
+            } else {
+              // Authentication if already not authorized for a particular device
+              GoogleFit.authorize(options)
+                .then(authResult => {
+                  if (authResult.success) {
+                    console.log('AUTH_SUCCESS');
+                    GoogleFit.getDailySteps().then((steps)=>{steps.forEach(el=>{
+                      let daily=0
+                      if(el.source.includes("google")&&el.source.includes("estimate")){
+                        setDailySteps(el.steps[0].value)
+                        daily=el.steps[0].value
+                      }
+                      if(snapshot.val().lifeSteps>0){
+                        const opt = {
+                          startDate: snapshot.val().lastOn, // required ISO8601Timestamp
+                          endDate: new Date().toISOString(), // required ISO8601Timestamp
+                          bucketInterval: 1, // optional - default 1. 
+                        };
+                        GoogleFit.getDailyStepCountSamples(opt).then((res)=>{res.forEach(el=>{
+                          if(el.source.includes("google")&&el.source.includes("estimate")){
+                            const allSteps = el.steps
+                            let newSteps=0
+                            allSteps.forEach(step=>{
+                              newSteps+=step.value
+                            })
+                            setLifeSteps(snapshot.val().lifeSteps+newSteps)
+                            update(ref(Authenticator.db, `users/${user.uid}`), {
+                              lifeSteps: snapshot.val().lifeSteps+newSteps,
+                              lastOn: new Date().toISOString()
+                            })
+                          }
+                        })}) 
+                      } else {
+                        setLifeSteps(daily)
+                        update(ref(Authenticator.db, `users/${user.uid}`), {
+                          lifeSteps: daily
+                        })
+                      }
+                    })}).catch()
+                    // if successfully authorized, fetch data
+                  } else {
+                    console.log('AUTH_DENIED ' + authResult.message);
+                  }
+                })
+                .catch((err) => {
+                  console.log(err)
+                });
+            }
+         });
+        } else {
+          console.log("No data available");
+        }
+      }).catch((error) => {
+        console.error(error);
+      });
+      
+    }
+  }, [user])
   /*Begin signup, login and profile components*/
   SignUp=()=>{
-    return (<View> 
-      <TextInput style={styles.input} placeholder="Name" onChangeText={setName} value={name}/>  
-      <TextInput style={styles.input} placeholder="Location" onChangeText={setLocation} value={location}/>  
-      <TouchableOpacity style={styles.button} onPress={()=>{Authenticator.signUpUser(email, password, name, location)}}>
+    return (<View>
+      <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry onChangeText={setConfirm} value={confirm}/>
+      <TextInput style={styles.input} placeholder="Username" onChangeText={setUsername} value={username}/>    
+      <TouchableOpacity style={styles.button} onPress={()=>{if(password===confirm&&username.length!==0) Authenticator.signUpUser(email, password, username) 
+        else alert('Passwords must match and username must be a nonempty string!')}}>
         <Text style={{color: 'white'}}>Sign Up</Text>
       </TouchableOpacity>
       <Text style={{marginTop: '5%', marginLeft: '5%',  marginRight: '5%'}}>Already have an account? <Text onPress={()=> setLoginState(0)} style = {{ color: 'blue' }}>Log In</Text></Text>
@@ -34,7 +128,46 @@ export default function Me({navigation}){
     </View>)
   }
   Profile=()=>{
+    const DATA = [
+      {
+        id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba',
+        title: 'Armor',
+        image1: require("../images/armor1.png")
+      },
+      {
+        id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63',
+        title: 'Weapon',
+        image1: require("../images/weapon1.png")
+      }
+    ];
+    const renderItem = ({ item }) => (
+      <View style={{padding: '5%', flexDirection: 'row'}}>
+          <Image
+            style={{ height: 100, width: 100}}
+            source={item.image1}
+            resizeMode="contain"
+          />
+        <Text style={{fontSize: 30}}>{item.title+"\n"} Lv. 1 (0/100)</Text>
+      </View>
+    );
     return (<View>
+      <Text style={{fontSize: 30, paddingBottom: '3%'}}>Welcome back, {username}</Text>
+      <View style={{paddingTop: '3%', height:"auto", flexDirection: 'row', justifyContent: 'space-evenly'}}>
+        <Text style={{paddingRight: '3%', fontSize: 15}}>Today's stats: </Text>
+        <Text style={{paddingRight: '3%', fontSize: 15}}>{dailySteps} <FontAwesome5 name="shoe-prints" size={20} color="#010333"/> </Text>
+        <Text style={{paddingLeft: '3%', fontSize: 15}}>0 <MaterialCommunityIcons name="lightning-bolt" size={22} color="#f7eb40"/></Text>
+      </View>
+      <View style={{paddingTop: '3%', height:"auto", flexDirection: 'row', justifyContent: 'space-evenly'}}>
+        <Text style={{paddingRight: '3%', fontSize: 15}}>Lifetime stats: </Text>
+        <Text style={{paddingRight: '3%', fontSize: 15}}>{lifeSteps} <FontAwesome5 name="shoe-prints" size={20} color="#010333"/> </Text>
+        <Text style={{paddingLeft: '3%', fontSize: 15}}>0 <MaterialCommunityIcons name="lightning-bolt" size={22} color="#f7eb40"/></Text>
+      </View>
+      <FlatList
+      style={{paddingTop: '10%'}}
+        data={DATA}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+      />
         <TouchableOpacity style={styles.button} onPress={()=>{Authenticator.signOutUser()}}>
           <Text style={{color: 'white'}}>Sign Out</Text>
         </TouchableOpacity>
